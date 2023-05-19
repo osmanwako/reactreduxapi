@@ -1,33 +1,47 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
     users: [],
-    isLoading: true,
+    isloading: false,
     error: undefined,
-}
+};
 
-export const Userslice = createSlice({
-    name: 'user',
-    initialState,
-    reducers: {
-        addbook: (state, { payload }) => {
-            const book = { ...payload, completed: 0 };
-            state.books = [...state.books, { ...book }];
-            state.count += 1;
-        },
-        removebook: (state, action) => {
-            const id = action.payload;
-            //console.log(id);
-            state.books = state.books.filter((book) => book.id !== id);
-            state.count -= 1;
-        },
-        editbooktitle: (state, { payload }) => {
-            const editbook = state.books.find((book) => book.id === payload.id);
-            editbook.title = payload.title;
-        },
+export const fetchUsers = createAsyncThunk('users/fetchUsers', async (num, { dispatch, getState, rejectWithValue, fulfillWithValue }) => {
+    try {
+        const response = await fetch(`https://randomuser.me/api/?results=${num}`);
+        if (!response.ok) {
+            return rejectWithValue(response.status)
+        }
+        const data = await response.json();
+        return fulfillWithValue(data.results)
+    } catch (error) {
+        throw rejectWithValue(error.message)
     }
 });
 
-export const { addbook, removebook, editbooktitle } = counterslice.actions;
+const Userslice = createSlice({
+    name: 'users',
+    initialState,
+    reducers: {
+    },
+    extraReducers: (builder) => {
+        builder.addCase(fetchUsers.pending, (state, action) => {
+            console.log("pending", state, action);
+            state.isloading = true;
+            state.error = false;
+            state.users = [];
+        }).addCase(fetchUsers.fulfilled, (state, action) => {
+            console.log("fulfilled", state, action);
+            state.isloading = false;
+            state.error = false;
+            state.users = action.payload;
+        }).addCase(fetchUsers.rejected, (state, action) => {
+            console.log("rejected", state, action);
+            state.isloading = false;
+            state.error = action.payload;
+            state.users = [];
+        });
+    },
+});
 
-export default counterslice.reducer;
+export default Userslice.reducer;
